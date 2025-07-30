@@ -41,6 +41,56 @@ const getBaseUrl = () => {
   return `http://localhost:${process.env.PORT || 8001}`;
 };
 
+// ActivityPub user profile endpoint
+app.get("/users/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    const baseUrl = getBaseUrl();
+
+    // Get user's posts to count them
+    const userPosts = await postsService.getPostsByUsername(username);
+
+    // Create ActivityPub Person object
+    const person = {
+      "@context": [
+        "https://www.w3.org/ns/activitystreams",
+        "https://w3id.org/security/v1",
+      ],
+      id: `${baseUrl}/users/${username}`,
+      type: "Person",
+      preferredUsername: username,
+      name: username,
+      summary: `A user on ${baseUrl}`,
+      inbox: `${baseUrl}/users/${username}/inbox`,
+      outbox: `${baseUrl}/users/${username}/outbox`,
+      followers: `${baseUrl}/users/${username}/followers`,
+      following: `${baseUrl}/users/${username}/following`,
+      publicKey: {
+        id: `${baseUrl}/users/${username}#main-key`,
+        owner: `${baseUrl}/users/${username}`,
+        publicKeyPem:
+          "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----\n",
+      },
+      attachment: [
+        {
+          type: "PropertyValue",
+          name: "Posts",
+          value: `${userPosts.length} posts`,
+        },
+      ],
+      endpoints: {
+        sharedInbox: `${baseUrl}/inbox`,
+      },
+    };
+
+    res.setHeader("Content-Type", "application/activity+json");
+    res.json(person);
+  } catch (error) {
+    logger.error(`Error getting user profile: ${error}`);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Basic ActivityPub endpoints for federation
 app.get("/.well-known/webfinger", (req, res) => {
   const resource = req.query.resource;
@@ -261,7 +311,7 @@ app.get("/", (req, res) => {
             <div class="federation-info">
                 <h3>🌐 Federation Enabled</h3>
                 <p>This server is now federated with the ActivityPub network! Other servers like Mastodon can discover and interact with users on this platform.</p>
-                <p><strong>Example user profile:</strong> <a href="${baseUrl}/users/tshepobbbdss" target="_blank">@tshepobbbdss</a></p>
+                <p><strong>Example user profile:</strong> <a href="${baseUrl}/users/tshepobbd" target="_blank">@tshepobbd</a></p>
             </div>
             
             <div class="database-info">
