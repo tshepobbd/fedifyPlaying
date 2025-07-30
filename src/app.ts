@@ -13,6 +13,14 @@ app.set("trust proxy", true);
 // Parse JSON bodies
 app.use(express.json());
 
+// Add CORS headers for federation
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Accept");
+  next();
+});
+
 // Initialize Redis connection
 redisClient.connect().catch(console.error);
 
@@ -101,6 +109,7 @@ app.get("/.well-known/webfinger", (req, res) => {
   const username = resource.toString().replace("acct:", "").split("@")[0];
   const baseUrl = getBaseUrl();
 
+  res.setHeader("Content-Type", "application/jrd+json");
   res.json({
     subject: resource,
     links: [
